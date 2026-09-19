@@ -2,8 +2,61 @@ from ollama import chat, ResponseError
 
 
 MODEL = "qwen3:4b-instruct"
+
+# Keep the newest messages in full detail.
 MAX_RECENT_MESSAGES = 12
 
+# Once the conversation gets this long, compress older messages into a summary.
+SUMMARY_TRIGGER = 16
+
+SUMMARY_SYSTEM_PROMPT = """
+You create factual session memory for LingoMate.
+
+Your job is to preserve useful facts from older conversation so LingoMate
+can continue a conversation after the original messages are removed.
+
+ONLY preserve information that is explicitly supported by the conversation.
+
+Important things to preserve:
+- names of people and their relationship to the user
+- places or situations the user explicitly established
+- the user's stated goals
+- the user's stated preferences
+- important unresolved matters
+- useful language-learning context explicitly stated by the user
+
+Do NOT invent, infer, or guess facts.
+
+Do NOT treat the assistant's imaginary roleplay statements as facts about
+the user.
+
+Do NOT include:
+- greetings
+- jokes
+- filler
+- praise
+- repeated information
+- assumptions
+- guesses
+- invented background stories
+- "current focus" unless the user explicitly stated it
+
+Return a short factual bullet list.
+
+Example:
+
+People:
+- Arham is the user's friend.
+
+Situation:
+- The user is role-playing a conversation in Korea.
+
+Preferences:
+- User has not stated any relevant preference.
+
+If there is no useful information, say:
+- No important information to retain.
+"""
 
 SYSTEM_PROMPT = """
 You are LingoMate.
@@ -342,26 +395,122 @@ do not ask for clarification merely to make the sentence grammatically precise.
 
 """
 
-def trim_conversation(messages):
+def build_context_messages(conversation_messages, conversation_summary):
     """
-    Keep the system instructions plus the most recent conversation messages.
-    Older messages are temporarily removed.
+    Build the exact context sent to the model.
     """
-    if len(messages) <= MAX_RECENT_MESSAGES + 1:
-        return
 
-    system_message = messages[0]
-    recent_messages = messages[-MAX_RECENT_MESSAGES:]
+    system_content = SYSTEM_PROMPT
 
-    messages[:] = [system_message] + recent_messages
+    if conversation_summary:
+        system_content += (
+            "\n\n"
+            "========================\n"
+            "SESSION MEMORY\n"
+            "========================\n"
+            "The following information was explicitly established earlier "
+            "in this conversation.\n"
+            "Use it when relevant. Do not ignore it.\n"
+            "Do not invent additional facts from it.\n\n"
+            + conversation_summary
+        )
 
-def main():
-    messages = [
+    model_messages = [
         {
             "role": "system",
-            "content": SYSTEM_PROMPT,
+            "content": system_content,
         }
     ]
+
+    model_messages.extend(conversation_messages)
+
+    return model_messages
+
+
+def summarize_old_messages(old_messages, existing_summary):
+    """
+    Ask the model to compress older conversation into useful session memory.
+    """
+    conversation_text = []
+
+    if existing_summary:
+        conversation_text.append(
+            "EXISTING MEMORY SUMMARY:\n" + existing_summary
+        )
+
+    conversation_text.append("OLDER CONVERSATION:\n")
+
+    for message in old_messages:
+        role = message["role"].upper()
+        content = message["content"]
+
+        conversation_text.append(
+            f"{role}: {content}"
+        )
+
+    prompt = "\n\n".join(conversation_text)
+
+    response = chat(
+        model=MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": SUMMARY_SYSTEM_PROMPT,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        stream=False,
+        think=False,
+        options={
+            "temperature": 0.0,
+        },
+    )
+
+    return response["message"]["content"].strip()
+
+
+def update_conversation_memory(
+    conversation_messages,
+    conversation_summary,
+):
+    """
+    When the recent conversation becomes too large,
+    summarize the older part and keep the newest messages.
+    """
+    if len(conversation_messages) <= SUMMARY_TRIGGER:
+        return conversation_summary
+
+    old_messages = conversation_messages[:-MAX_RECENT_MESSAGES]
+
+    if not old_messages:
+        return conversation_summary
+
+    print("\n[Updating conversation memory...]\n")
+
+    try:
+        new_summary = summarize_old_messages(
+            old_messages,
+            conversation_summary,
+        )
+
+        if new_summary:
+            conversation_messages[:] = conversation_messages[
+                -MAX_RECENT_MESSAGES:
+            ]
+
+            return new_summary
+
+    except Exception as error:
+        print(f"[Memory update failed: {error}]")
+
+    return conversation_summary
+
+def main():
+    conversation_messages = []
+    conversation_summary = ""
 
     print("\n=== LingoMate V1 ===")
     print("Your local AI conversation partner.")
@@ -379,28 +528,40 @@ def main():
                 break
 
             if user_message.lower() == "/memory":
-                print(f"\nMessages currently stored: {len(messages)}")
+                print("\n=== LingoMate Memory ===")
 
-                for i, message in enumerate(messages):
+                if conversation_summary:
+                    print("\nOlder conversation summary:")
+                    print(conversation_summary)
+                else:
+                    print("\nOlder conversation summary: None yet.")
+
+                print(
+                    f"\nRecent messages stored: "
+                    f"{len(conversation_messages)}"
+                )
+
+                for i, message in enumerate(conversation_messages):
                     role = message["role"]
                     text = message["content"]
 
-                    print(f"{i}: {role} | {len(text)} characters")
+                    print(
+                        f"{i}: {role} | {len(text)} characters"
+                    )
 
                 print()
+
                 continue
 
             if user_message.lower() == "/reset":
-                messages = [
-                    {
-                        "role": "system",
-                        "content": SYSTEM_PROMPT,
-                    }
-                ]
+                conversation_messages = []
+                conversation_summary = ""
+
                 print("\n[New conversation started]\n")
+
                 continue
 
-            messages.append(
+            conversation_messages.append(
                 {
                     "role": "user",
                     "content": user_message,
@@ -409,9 +570,14 @@ def main():
 
             print("LingoMate: ", end="", flush=True)
 
+            model_messages = build_context_messages(
+                conversation_messages,
+                conversation_summary,
+            )
+
             response = chat(
                 model=MODEL,
-                messages=messages,
+                messages=model_messages,
                 stream=True,
                 think=False,
                 options={
@@ -428,14 +594,17 @@ def main():
 
             print("\n")
 
-            messages.append(
+            conversation_messages.append(
                 {
                     "role": "assistant",
                     "content": assistant_text,
                 }
             )
 
-            trim_conversation(messages)
+            conversation_summary = update_conversation_memory(
+                conversation_messages,
+                conversation_summary,
+            )
 
         except ResponseError as error:
             print(f"\nOllama error: {error}\n")
