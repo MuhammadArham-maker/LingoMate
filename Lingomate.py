@@ -2,6 +2,7 @@ from ollama import chat, ResponseError
 
 
 MODEL = "qwen3:4b-instruct"
+MAX_RECENT_MESSAGES = 12
 
 
 SYSTEM_PROMPT = """
@@ -341,6 +342,18 @@ do not ask for clarification merely to make the sentence grammatically precise.
 
 """
 
+def trim_conversation(messages):
+    """
+    Keep the system instructions plus the most recent conversation messages.
+    Older messages are temporarily removed.
+    """
+    if len(messages) <= MAX_RECENT_MESSAGES + 1:
+        return
+
+    system_message = messages[0]
+    recent_messages = messages[-MAX_RECENT_MESSAGES:]
+
+    messages[:] = [system_message] + recent_messages
 
 def main():
     messages = [
@@ -364,6 +377,18 @@ def main():
             if user_message.lower() == "/quit":
                 print("Goodbye!")
                 break
+
+            if user_message.lower() == "/memory":
+                print(f"\nMessages currently stored: {len(messages)}")
+
+                for i, message in enumerate(messages):
+                    role = message["role"]
+                    text = message["content"]
+
+                    print(f"{i}: {role} | {len(text)} characters")
+
+                print()
+                continue
 
             if user_message.lower() == "/reset":
                 messages = [
@@ -409,6 +434,8 @@ def main():
                     "content": assistant_text,
                 }
             )
+
+            trim_conversation(messages)
 
         except ResponseError as error:
             print(f"\nOllama error: {error}\n")
