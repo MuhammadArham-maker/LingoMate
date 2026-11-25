@@ -30,7 +30,7 @@ The experimental `voice_lingomate.py` connects the microphone, faster-whisper, O
 
 ## Git checkpoints preserved
 
-The supplied repository history contains these six original commits:
+The repository's Git history contains seven development checkpoints documenting the progression of LingoMate:
 
 1. Initial LingoMate conversation prototype — 18 September 2026.
 2. Add sliding conversation window — 19 September 2026.
@@ -38,5 +38,6 @@ The supplied repository history contains these six original commits:
 4. Add speech-to-text prototype — 19 September 2026.
 5. Add speech input and text-to-speech prototypes — 19 September 2026.
 6. Improve speech recognition with Whisper small — 20 September 2026.
+7. Add Piper voice integration and project documentation — 25 November 2026.
 
-The supplied working snapshot includes additional Piper integration in `voice_lingomate.py` beyond the last recorded commit. That integration is retained in the prepared copy as a pending working-tree change so it can be reviewed and committed as the next development checkpoint.
+Together, these commits document the development of LingoMate from its initial text-based conversation prototype through session memory, speech recognition, text-to-speech experiments and the integration of a complete voice interaction pipeline.
