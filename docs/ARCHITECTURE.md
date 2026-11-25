@@ -24,6 +24,8 @@ Session memory exists only while the program is running. There is no permanent u
 
 `voice_lingomate.py` implements a separate experimental voice loop.
 
+The voice prototype defines its own shorter system prompt rather than reusing the text prototype's full conversation instructions and context-building functions.
+
 ```text
 Microphone
    -> sounddevice records 5 seconds at 16 kHz
@@ -57,7 +59,7 @@ Model weights are not stored in this repository. The Piper JSON configuration is
 
 ## 6. Known boundaries
 
-- The voice prototype records fixed-duration chunks; it does not yet detect natural end-of-speech or support barge-in/interruptions.
+- The voice prototype records fixed five-second audio segments. Although VAD filtering is enabled during transcription, recording does not dynamically stop when the speaker finishes talking. Barge-in and interruption handling are not implemented.
 - The voice transcription language is currently hard-coded to English.
 - The current Piper voice is English (US).
 - The text conversation prototype has summary-based session memory; the voice prototype does not share that memory implementation.
