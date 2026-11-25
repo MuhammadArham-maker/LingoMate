@@ -1,6 +1,10 @@
+import wave
+
+import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
 from ollama import chat
+from piper import PiperVoice
 
 
 SAMPLE_RATE = 16000
@@ -10,16 +14,20 @@ RECORD_SECONDS = 5
 # English = "en"
 TARGET_LANGUAGE = "en"
 
-print("Loading speech recognition model...")
+VOICE_MODEL = "en_US-lessac-medium.onnx"
+VOICE_OUTPUT_FILE = "lingomate_reply.wav"
 
+print("Loading speech recognition model...")
 speech_model = WhisperModel(
     "small",
     device="cpu",
     compute_type="int8",
 )
-
 print("Speech model loaded!")
 
+print("Loading voice...")
+voice = PiperVoice.load(VOICE_MODEL)
+print("Voice model loaded!")
 
 def listen():
     """Record the microphone and convert the speech into text."""
@@ -105,6 +113,35 @@ not using a language-learning exercise.
 
     return assistant_text
 
+def speak(text):
+    """Convert text to speech and play it."""
+
+    print("\nGenerating voice...")
+
+    with wave.open(VOICE_OUTPUT_FILE, "wb") as wav_file:
+        voice.synthesize_wav(text, wav_file)
+
+    with wave.open(VOICE_OUTPUT_FILE, "rb") as wav_file:
+        sample_rate = wav_file.getframerate()
+        channels = wav_file.getnchannels()
+        sample_width = wav_file.getsampwidth()
+        audio_bytes = wav_file.readframes(wav_file.getnframes())
+
+    if sample_width != 2:
+        raise ValueError(
+            f"Expected 16-bit audio, got {sample_width * 8}-bit"
+        )
+
+    audio = np.frombuffer(audio_bytes, dtype=np.int16)
+
+    if channels > 1:
+        audio = audio.reshape(-1, channels)
+
+    print("Speaking...")
+
+    sd.play(audio, sample_rate)
+    sd.wait()
+
 def main():
     conversation = []
 
@@ -125,6 +162,7 @@ def main():
         )
 
         print(f"LingoMate: {response}")
+        speak(response)
 
 
 if __name__ == "__main__":

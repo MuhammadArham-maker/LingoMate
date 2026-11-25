@@ -1,4 +1,36 @@
+# Python virtual environments
 .venv/
+venv/
+env/
+
+# Python cache and bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Environment variables and local secrets
 .env
+.env.*
+!.env.example
+
+# Downloaded model weights
+*.onnx
+*.bin
+*.gguf
+
+# Generated audio output
+*.wav
+*.mp3
+
+# Test, coverage, and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

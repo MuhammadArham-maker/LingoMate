@@ -1,0 +1,6 @@
+# Direct Python dependencies recorded in the supplied LingoMate environment.
+ollama==0.6.2
+numpy==2.5.3
+sounddevice==0.5.6
+faster-whisper==1.2.1
+piper-tts==1.8.0
