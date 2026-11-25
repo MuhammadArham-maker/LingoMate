@@ -11,6 +11,23 @@ The project currently contains two related prototypes:
 
 The prototypes share the same product direction, but their memory implementations are not yet unified.
 
+## Project Background & Early Development
+
+LingoMate originated from the idea of building a natural
+AI conversation partner rather than another conventional
+language-learning application.
+
+These early recordings document the original vision,
+design philosophy and first integrated voice prototype.
+
+- **Original Vision (September 17, 2026):**
+  [Natural conversation, imperfect language and the initial
+  development phases](https://youtu.be/7MssvTYP3V0?t=254)
+
+- **First Voice Prototype (September 20, 2026):**
+  [Local voice pipeline, component integration and early
+  speech-recognition challenges](https://youtu.be/252Yp-8Y2HA?t=169)
+
 ## Current capabilities
 
 ### Text conversation — `Lingomate.py`
