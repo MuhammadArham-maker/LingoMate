@@ -39,14 +39,45 @@ The prototypes share the same product direction, but their memory implementation
 
 ```text
 Text prototype
-User text -> Python conversation loop -> Ollama (Qwen3) -> streamed text response
-                         |
-                  session summary memory
+
+User text
+    |
+    v
+Python conversation loop
+    |
+    v
+Ollama (Qwen3)
+    |
+    v
+Streamed text response
+
+Session summary memory is maintained by the Python application.
+
 
 Voice prototype
-Microphone -> sounddevice -> faster-whisper -> transcribed text
-                                         -> Ollama (Qwen3)
-                                         -> response text -> Piper -> speakers
+
+Microphone
+    |
+    v
+SoundDevice
+    |
+    v
+faster-whisper
+    |
+    v
+Transcribed text
+    |
+    v
+Ollama (Qwen3)
+    |
+    v
+Response text
+    |
+    v
+Piper
+    |
+    v
+Speakers
 ```
 
 The components are kept conceptually separate so speech recognition, conversation, and speech synthesis can be tested independently. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for implementation details and current boundaries.
@@ -142,14 +173,25 @@ The speech-recognition model used by faster-whisper is downloaded when first loa
 
 ## Development history
 
-The Git history contains six original development checkpoints covering the initial text prototype, conversation memory, speech-to-text, speech/TTS experiments, and a Whisper model update. The current working version also contains a later Piper integration in `voice_lingomate.py`; that change was present in the supplied project snapshot but had not yet been committed in its original local history.
+The Git history contains seven development checkpoints documenting the progression of LingoMate:
 
-A summarized development timeline is available in [`docs/DEVELOPMENT_LOG.md`](docs/DEVELOPMENT_LOG.md). The original working project folder is not modified by this prepared copy.
+1. Initial text-based conversation prototype.
+2. Sliding conversation window.
+3. Session summary memory.
+4. Speech-to-text prototype.
+5. Speech input and text-to-speech prototypes.
+6. Improved speech recognition using Whisper small.
+7. Piper voice integration and project documentation.
+
+The latest checkpoint, committed on 25 November 2026, adds the Piper voice integration and supporting project documentation.
+
+A summarized development timeline is available in [`docs/DEVELOPMENT_LOG.md`](docs/DEVELOPMENT_LOG.md).
 
 ## Repository layout
 
 ```text
 LingoMate/
+├── .gitignore
 ├── Lingomate.py
 ├── voice_lingomate.py
 ├── speech_test.py
